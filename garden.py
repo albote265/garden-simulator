@@ -5,6 +5,10 @@ WATER_MAX = 1
 GROWTH_WATER_NEEDED = 1
 RIPE_DAYS_FROM_SEED = 3
 
+RIPE_DAYS_BY_CROP = {
+    "potato": 2,
+}
+
 
 def create_garden(rows, cols):
     if rows <= 0 or cols <= 0:
@@ -29,6 +33,10 @@ def get_cell(garden, row, col):
     if not is_in_bounds(garden, row, col):
         return None
     return garden[row][col]
+
+
+def get_ripe_days_needed(crop):
+    return RIPE_DAYS_BY_CROP.get(crop, RIPE_DAYS_FROM_SEED)
 
 
 def dig(garden, row, col):
@@ -76,9 +84,13 @@ def advance_day(garden):
         for cell in row:
             if cell["state"] == "seed" and cell["water"] >= GROWTH_WATER_NEEDED:
                 cell["days_as_seed"] += 1
-                if cell["days_as_seed"] >= RIPE_DAYS_FROM_SEED:
+
+                ripe_days_needed = get_ripe_days_needed(cell["crop"])
+                if cell["days_as_seed"] >= ripe_days_needed:
                     cell["state"] = "ripe"
-            cell["water"] -= 1
+
+            if cell["water"] > 0:
+                cell["water"] -= 1
 
     return True
 
@@ -91,6 +103,7 @@ def harvest(garden, row, col):
         return None
 
     harvested_crop = cell["crop"]
+
     cell["state"] = "empty"
     cell["crop"] = None
     cell["water"] = 0
@@ -98,8 +111,11 @@ def harvest(garden, row, col):
 
     if harvested_crop == "tomato":
         create_tomato_harvest_file()
+    else:
+        print(f"[Info] The crop {harvested_crop} has no file entry.")
 
     return harvested_crop
+
 
 def create_tomato_harvest_file():
     ### Aufgabe 3: Wenn eine Tomate geerntet wird, soll der User über das Erstellen der tomato.txt Datei informiert werden.
@@ -108,10 +124,14 @@ def create_tomato_harvest_file():
 
     harvests_dir = Path("harvests")
     harvests_dir.mkdir(exist_ok=True)
+
     target_file = harvests_dir / "tomato.txt"
     current_datetime = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     line = f"harvested 1 tomato {current_datetime}\n"
+
     with target_file.open("a", encoding="utf-8") as file:
         file.write(line)
+
+    print(f"Created file 'tomato.txt' at {current_datetime}")
 
     ### Aufgabe 3 Ende
